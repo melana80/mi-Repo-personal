@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gestión de Empleados</title>
+  <style>
+    /* ── Tokens ── */
+    :root {
+      --bg:        #0f1117;
+      --surface:   #191d27;
+      --border:    #272c3a;
+      --accent:    #5b7fff;
+      --accent-dk: #3a5be0;
+      --danger:    #e05252;
+      --danger-dk: #b83a3a;
+      --success:   #3ecf8e;
+      --text:      #e8eaf0;
+      --muted:     #7a8099;
+      --radius:    8px;
+      --mono:      'Courier New', monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 15px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    header .logo {
+      width: 36px; height: 36px;
+      background: var(--accent);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 16px; color: #fff; flex-shrink: 0;
+    }
+    header h1 { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; }
+    header small { color: var(--muted); font-family: var(--mono); font-size: 11px; }
+
+    /* ── Layout ── */
+    main {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 0;
+      flex: 1;
+    }
+
+    /* ── Sidebar / Form ── */
+    aside {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 28px 24px;
+      display: flex; flex-direction: column; gap: 20px;
+    }
+    .form-title {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field label { font-size: 13px; color: var(--muted); }
+    .field input {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 14px;
+      padding: 9px 12px;
+      transition: border-color .15s;
+      outline: none;
+      width: 100%;
+    }
+    .field input:focus { border-color: var(--accent); }
+
+    .btn {
+      border: none; cursor: pointer; font-size: 14px; font-weight: 600;
+      padding: 10px 18px; border-radius: var(--radius);
+      transition: background .15s, transform .08s;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-dk); }
+    .btn-danger  { background: var(--danger); color: #fff; }
+    .btn-danger:hover  { background: var(--danger-dk); }
+    .btn-ghost   { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .btn-ghost:hover   { color: var(--text); border-color: var(--muted); }
+    .btn-sm { padding: 5px 11px; font-size: 12px; }
+
+    .form-actions { display: flex; gap: 8px; }
+    .form-actions .btn { flex: 1; }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 12px 18px;
+      font-size: 13px; display: none;
+      box-shadow: 0 8px 30px rgba(0,0,0,.5);
+      z-index: 999; max-width: 300px;
+    }
+    #toast.show { display: block; animation: fadeup .25s ease; }
+    #toast.ok   { border-left: 3px solid var(--success); }
+    #toast.err  { border-left: 3px solid var(--danger); }
+    @keyframes fadeup {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Content area ── */
+    section {
+      padding: 28px 32px;
+      display: flex; flex-direction: column; gap: 20px;
+      overflow-x: auto;
+    }
+    .section-header {
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .section-header h2 { font-size: 16px; font-weight: 600; }
+    #badge {
+      background: var(--border);
+      border-radius: 20px; padding: 3px 10px;
+      font-family: var(--mono); font-size: 12px; color: var(--muted);
+    }
+
+    /* ── Table ── */
+    table {
+      width: 100%; border-collapse: collapse;
+      font-size: 14px;
+    }
+    thead tr { border-bottom: 1px solid var(--border); }
+    thead th {
+      text-align: left; padding: 10px 14px;
+      font-size: 11px; font-weight: 600;
+      letter-spacing: .08em; text-transform: uppercase;
+      color: var(--muted);
+    }
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background .12s;
+    }
+    tbody tr:hover { background: var(--surface); }
+    tbody tr.selected { background: rgba(91,127,255,.08); }
+    tbody td { padding: 12px 14px; }
+
+    .id-chip {
+      font-family: var(--mono); font-size: 11px;
+      background: var(--border); border-radius: 4px;
+      padding: 2px 7px; color: var(--muted);
+    }
+    .td-actions { display: flex; gap: 6px; }
+
+    /* ── Empty / loading state ── */
+    .state-msg {
+      text-align: center; padding: 60px 20px;
+      color: var(--muted); font-size: 14px;
+    }
+    .state-msg span { display: block; font-size: 28px; margin-bottom: 8px; }
+
+    /* ── Spinner ── */
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,.15);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+      display: inline-block; vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Responsive ── */
+    @media (max-width: 720px) {
+      main { grid-template-columns: 1fr; }
+      aside { border-right: none; border-bottom: 1px solid var(--border); }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">E</div>
+  <div>
+    <h1>Gestión de Empleados</h1>
+    <small>http://localhost:8080/api/v1/empleados</small>
+  </div>
+</header>
+
+<main>
+  <!-- ── Formulario ── -->
+  <aside>
+    <p class="form-title" id="form-title">Nuevo empleado</p>
+
+    <div class="field">
+      <label for="f-nombre">Nombre</label>
+      <input type="text" id="f-nombre" placeholder="Juan García" autocomplete="off" />
+    </div>
+    <div class="field">
+      <label for="f-apellido">Apellido</label>
+      <input type="text" id="f-apellido" placeholder="García" autocomplete="off" />
+    </div>
+    <div class="field">
+      <label for="f-email">Email</label>
+      <input type="email" id="f-email" placeholder="juan@empresa.com" autocomplete="off" />
+    </div>
+    <div class="field">
+      <label for="f-cargo">Cargo</label>
+      <input type="text" id="f-cargo" placeholder="Desarrollador" autocomplete="off" />
+    </div>
+    <div class="field">
+      <label for="f-salario">Salario</label>
+      <input type="number" id="f-salario" placeholder="0" min="0" />
+    </div>
+
+    <div class="form-actions">
+      <button class="btn btn-primary" id="btn-save" onclick="handleSave()">Guardar</button>
+      <button class="btn btn-ghost"   id="btn-cancel" onclick="resetForm()" style="display:none">Cancelar</button>
+    </div>
+  </aside>
+
+  <!-- ── Tabla ── -->
+  <section>
+    <div class="section-header">
+      <h2>Empleados</h2>
+      <span id="badge">—</span>
+    </div>
+    <div id="table-wrap"></div>
+  </section>
+</main>
+
+<div id="toast"></div>
+
+<script>
+  const API = 'http://localhost:8080/api/v1/empleados';
+
+  // ── State ──────────────────────────────────────────────────────
+  let editingId = null;
+
+  // ── Toast ──────────────────────────────────────────────────────
+  function toast(msg, type = 'ok') {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = `show ${type}`;
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.className = '', 3000);
+  }
+
+  // ── API helpers ────────────────────────────────────────────────
+  async function apiFetch(path, options = {}) {
+    const res = await fetch(API + path, {
+      headers: { 'Content-Type': 'application/json' },
+      ...options,
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => res.statusText);
+      throw new Error(`${res.status} – ${text}`);
+    }
+    // 204 No Content no tiene body
+    return res.status === 204 ? null : res.json();
+  }
+
+  // ── Render table ───────────────────────────────────────────────
+  function renderTable(empleados) {
+    const wrap = document.getElementById('table-wrap');
+    document.getElementById('badge').textContent = `${empleados.length} registros`;
+
+    if (!empleados.length) {
+      wrap.innerHTML = `
+        <div class="state-msg">
+          <span>👥</span>
+          No hay empleados todavía. Creá el primero con el formulario.
+        </div>`;
+      return;
+    }
+
+    // Detectar columnas disponibles dinámicamente
+    const colKeys = Object.keys(empleados[0]).filter(k => k !== 'id');
+    const colLabels = {
+      nombre: 'Nombre', apellido: 'Apellido', email: 'Email',
+      cargo: 'Cargo', salario: 'Salario',
+    };
+
+    const headerCells = ['#', ...colKeys, '']
+      .map(k => `<th>${colLabels[k] ?? k}</th>`).join('');
+
+    const rows = empleados.map(e => {
+      const cells = colKeys.map(k => {
+        const val = e[k] ?? '—';
+        return `<td>${val}</td>`;
+      }).join('');
+      return `
+        <tr id="row-${e.id}" class="${editingId == e.id ? 'selected' : ''}">
+          <td><span class="id-chip">${e.id}</span></td>
+          ${cells}
+          <td>
+            <div class="td-actions">
+              <button class="btn btn-ghost btn-sm" onclick="startEdit(${e.id})">✏️ Editar</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteEmpleado(${e.id})">🗑 Borrar</button>
+            </div>
+          </td>
+        </tr>`;
+    }).join('');
+
+    wrap.innerHTML = `
+      <table>
+        <thead><tr>${headerCells}</tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  // ── Load all ───────────────────────────────────────────────────
+  async function loadEmpleados() {
+    const wrap = document.getElementById('table-wrap');
+    wrap.innerHTML = `<div class="state-msg"><div class="spinner"></div></div>`;
+    try {
+      const data = await apiFetch('');
+      // Soporta respuesta como array o como { data: [...] }
+      const list = Array.isArray(data) ? data : (data.data ?? data.empleados ?? []);
+      renderTable(list);
+    } catch (err) {
+      wrap.innerHTML = `<div class="state-msg"><span>⚠️</span>${err.message}</div>`;
+      toast('Error al cargar empleados', 'err');
+    }
+  }
+
+  // ── Form helpers ───────────────────────────────────────────────
+  function getFormData() {
+    return {
+      nombre:   document.getElementById('f-nombre').value.trim(),
+      apellido: document.getElementById('f-apellido').value.trim(),
+      email:    document.getElementById('f-email').value.trim(),
+      cargo:    document.getElementById('f-cargo').value.trim(),
+      salario:  parseFloat(document.getElementById('f-salario').value) || 0,
+    };
+  }
+
+  function resetForm() {
+    editingId = null;
+    ['f-nombre','f-apellido','f-email','f-cargo','f-salario']
+      .forEach(id => document.getElementById(id).value = '');
+    document.getElementById('form-title').textContent = 'Nuevo empleado';
+    document.getElementById('btn-save').textContent   = 'Guardar';
+    document.getElementById('btn-cancel').style.display = 'none';
+    // quitar highlight
+    document.querySelectorAll('tr.selected').forEach(r => r.classList.remove('selected'));
+  }
+
+  function startEdit(id) {
+    // Leer datos de la fila
+    const row = document.getElementById(`row-${id}`);
+    if (!row) return;
+    const cells = row.querySelectorAll('td');
+    // cells[0] = id chip, cells[1..n-1] = datos, cells[n] = acciones
+    // Usamos apiFetch GET /:id para evitar depender del orden de columnas
+    apiFetch(`/${id}`)
+      .then(emp => {
+        editingId = id;
+        document.getElementById('f-nombre').value   = emp.nombre   ?? '';
+        document.getElementById('f-apellido').value = emp.apellido ?? '';
+        document.getElementById('f-email').value    = emp.email    ?? '';
+        document.getElementById('f-cargo').value    = emp.cargo    ?? '';
+        document.getElementById('f-salario').value  = emp.salario  ?? '';
+        document.getElementById('form-title').textContent = `Editando #${id}`;
+        document.getElementById('btn-save').textContent   = 'Actualizar';
+        document.getElementById('btn-cancel').style.display = '';
+        document.querySelectorAll('tr.selected').forEach(r => r.classList.remove('selected'));
+        row.classList.add('selected');
+        document.getElementById('f-nombre').focus();
+      })
+      .catch(err => toast(`No se pudo cargar el empleado: ${err.message}`, 'err'));
+  }
+
+  // ── Save (create or update) ────────────────────────────────────
+  async function handleSave() {
+    const body = getFormData();
+    if (!body.nombre) { toast('El nombre es obligatorio', 'err'); return; }
+
+    const btn = document.getElementById('btn-save');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>';
+
+    try {
+      if (editingId === null) {
+        await apiFetch('', { method: 'POST', body: JSON.stringify(body) });
+        toast('Empleado creado ✓');
+      } else {
+        await apiFetch(`/${editingId}`, { method: 'PUT', body: JSON.stringify(body) });
+        toast('Empleado actualizado ✓');
+      }
+      resetForm();
+      await loadEmpleados();
+    } catch (err) {
+      toast(`Error: ${err.message}`, 'err');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = editingId === null ? 'Guardar' : 'Actualizar';
+    }
+  }
+
+  // ── Delete ─────────────────────────────────────────────────────
+  async function deleteEmpleado(id) {
+    if (!confirm(`¿Eliminar el empleado #${id}? Esta acción no se puede deshacer.`)) return;
+    try {
+      await apiFetch(`/${id}`, { method: 'DELETE' });
+      if (editingId === id) resetForm();
+      toast(`Empleado #${id} eliminado`);
+      await loadEmpleados();
+    } catch (err) {
+      toast(`Error al eliminar: ${err.message}`, 'err');
+    }
+  }
+
+  // ── Enter key en formulario ───────────────────────────────────
+  document.querySelectorAll('aside input').forEach(inp =>
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') handleSave(); })
+  );
+
+  // ── Init ───────────────────────────────────────────────────────
+  loadEmpleados();
+</script>
+</body>
+</html>
