@@ -8,3 +8,4 @@ type Cliente struct {
 	Cedula    string `gorm:"size:20;not null;uniqueIndex" json:"cedula"`
 	Telefono  string `gorm:"size:20;not null" json:"telefono"`
 }
+
