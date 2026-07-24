@@ -7,3 +7,4 @@ const (
 	EstadoLista  = "LISTA"
 	EstadoCancelada   = "CANCELADA"
 )
+
